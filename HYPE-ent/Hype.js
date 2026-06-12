@@ -1,86 +1,131 @@
-// LOGIN
+let utilisateurs = JSON.parse(localStorage.getItem("users")) || [];
+let messages = [];
+
+let utilisateurActuel = null;
+
+// CONNEXION SIMPLE
 function connexion() {
-    let email = document.getElementById("loginEmail").value;
-    let password = document.getElementById("loginPassword").value;
+    let pseudo = document.getElementById("loginPseudo").value;
 
-    if (email !== "" && password !== "") {
-        document.getElementById("loginPage").style.display = "none";
-        document.getElementById("container").style.display = "flex";
-        afficherNews();
-    } else {
-        alert("Remplis les champs !");
-    }
+    if (!pseudo) return alert("Entre un pseudo");
+
+    utilisateurActuel = pseudo;
+
+    document.getElementById("loginPage").style.display = "none";
+    document.getElementById("container").style.display = "flex";
+
+    afficherMembres();
 }
 
-// DATA
-const dataGlobal = {
-    news: [
-        "Nouvelle attaque phishing détectée",
-        "Mise à jour sécurité importante"
-    ],
-    info: [
-        "Activez le 2FA",
-        "Ne cliquez pas sur des liens suspects"
-    ]
-};
+// --- MEMBRES (ancien News)
+function afficherMembres() {
+    let html = `
+    <h2>Nouveaux membres</h2>
+    <table border="1">
+        <tr>
+            <th>Pseudo</th>
+            <th>Date</th>
+        </tr>
+    `;
 
-// NEWS
-function afficherNews() {
-    let contenu = "<h2>News</h2><ul>";
-    dataGlobal.news.forEach(n => {
-        contenu += "<li>" + n + "</li>";
+    utilisateurs.forEach(u => {
+        html += `
+        <tr>
+            <td>${u.pseudo}</td>
+            <td>${u.date}</td>
+        </tr>
+        `;
     });
-    contenu += "</ul>";
 
-    document.getElementById("textContent").innerHTML = contenu;
+    html += "</table>";
+
+    document.getElementById("textContent").innerHTML = html;
 }
 
-// INFO
-function afficherInfo() {
-    document.getElementById("textContent").innerHTML =
-        "<h2>Info</h2><p>Conseils de sécurité disponibles ici.</p>";
-}
-
-// REPORT
-function afficherReport() {
+// --- IDENTIFICATION
+function afficherIdentification() {
     document.getElementById("textContent").innerHTML = `
-        <h2>Report</h2>
-        <form onsubmit="envoyerSignalement(event)">
-            <div class="form-group">
-                <input id="email" placeholder="email">
-            </div>
-            <div class="form-group">
-                <textarea id="message" placeholder="message"></textarea>
-            </div>
-            <div class="form-group">
-                <textarea id="description" placeholder="suspect"></textarea>
-            </div>
-            <button class="form-submit" type="submit">Envoyer</button>
-        </form>
+        <h2>Identification</h2>
+
+        <input id="pseudo" placeholder="Pseudo"><br><br>
+        <input id="discord" placeholder="Discord (ex: user#0001)"><br><br>
+
+        <button onclick="validerIdentification()">Valider</button>
     `;
 }
 
-// POWER AUTOMATE
-function envoyerSignalement(event) {
-    event.preventDefault();
+function validerIdentification() {
+    let pseudo = document.getElementById("pseudo").value;
+    let discord = document.getElementById("discord").value;
 
-    fetch("TON_URL_POWER_AUTOMATE", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            email: document.getElementById("email").value,
-            message: document.getElementById("message").value,
-            description: document.getElementById("description").value
-        })
-    })
-    .then(() => alert("Signalement envoyé"))
-    .catch(() => alert("Erreur"));
+    if (!pseudo || !discord) {
+        return alert("Remplis tout");
+    }
+
+    // Vérif doublon
+    let existe = utilisateurs.some(u => u.pseudo === pseudo || u.discord === discord);
+
+    if (existe) {
+        return alert("Pseudo ou Discord déjà utilisé !");
+    }
+
+    let date = new Date().toLocaleDateString();
+
+    utilisateurs.push({ pseudo, discord, date });
+
+    localStorage.setItem("users", JSON.stringify(utilisateurs));
+
+    alert("Demande envoyée !");
+    afficherMembres();
 }
 
-// JEU (simplifié — tu peux remettre le tien complet)
-function AfficherJeu() {
-    document.getElementById("textContent").innerHTML =
-        "<h2>Support</h2><p>Module support en cours...</p>";
+// --- PROFIL (remplace info sécurité)
+function afficherProfil() {
+    document.getElementById("textContent").innerHTML = `
+        <h2>Profil</h2>
+        <p>Pseudo connecté : ${utilisateurActuel}</p>
+        <p>(Validation Discord faite manuellement)</p>
+    `;
 }
+
+// --- CHAT TEMPORAIRE
+function afficherChat() {
+    afficherMessages();
+
+    document.getElementById("textContent").innerHTML += `
+        <br>
+        <input id="msg" placeholder="Message...">
+        <button onclick="envoyerMessage()">Envoyer</button>
+    `;
+}
+
+function afficherMessages() {
+    let html = "<h2>Chat (temporaire)</h2>";
+
+    messages.forEach(m => {
+        html += `<p><b>${m.user}:</b> ${m.text}</p>`;
+    });
+
+    document.getElementById("textContent").innerHTML = html;
+}
+
+function envoyerMessage() {
+    let text = document.getElementById("msg").value;
+
+    if (!text) return;
+
+    messages.push({
+        user: utilisateurActuel,
+        text: text
+    });
+
+    document.getElementById("msg").value = "";
+
+    afficherChat();
+}
+
+// --- SUPPRESSION CHAT SI PERSONNE (simulation)
+window.addEventListener("beforeunload", () => {
+    messages = [];
+});
+</html>
